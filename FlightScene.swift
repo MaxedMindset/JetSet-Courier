@@ -16,7 +16,8 @@ class FlightScene: SKScene, SKPhysicsContactDelegate {
     var aircraft: Aircraft!
     var packageNode: SKSpriteNode!
     var policeNodes: [SKSpriteNode] = []
-    
+    var windForce: CGVector = CGVector(dx: 0, dy: 0)
+
     // Physics-Kategorien
     struct PhysicsCategory {
         static let aircraft: UInt32 = 0b1
@@ -79,6 +80,29 @@ class FlightScene: SKScene, SKPhysicsContactDelegate {
     }
     
     override func update(_ currentTime: TimeInterval) {
+        // --- Erweiterte Physik: Wind und Turbulenzen ---
+
+        // Simuliere dynamische Windänderungen
+        let windChangeProbability = 0.02  // Wahrscheinlichkeit, dass sich der Wind ändert
+        if CGFloat.random(in: 0...1) < windChangeProbability {
+        // Setze einen neuen zufälligen Wind: horizontal zwischen -50 und 50
+        let randomWind = CGFloat.random(in: -50...50)
+        windForce = CGVector(dx: randomWind, dy: 0)
+        }
+        // Wende den aktuellen Wind als Kraft auf das Flugzeug an
+        aircraft.physicsBody?.applyForce(windForce)
+
+        // Simuliere Turbulenzen: kleine, zufällige zusätzliche Kräfte
+        let turbulenceForce = CGVector(dx: CGFloat.random(in: -10...10), dy: CGFloat.random(in: -10...10))
+        aircraft.physicsBody?.applyForce(turbulenceForce)
+
+        // Dynamische Luftdichte: Ab einer bestimmten Höhe wird der Auftrieb reduziert
+        if aircraft.position.y > 500 {
+        let reductionFactor = 1 - ((aircraft.position.y - 500) / 500) * 0.5  // bis zu 50% Reduktion
+        // Wende einen zusätzlichen Abwärtsimpuls proportional zur Reduktion an
+        aircraft.physicsBody?.applyForce(CGVector(dx: 0, dy: -50 * (1 - reductionFactor)))
+        }
+
         // Berechne aktuelle Flughöhe
         currentAltitude = aircraft.position.y
         
