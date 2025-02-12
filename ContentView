@@ -1,0 +1,54 @@
+//
+//  ContentView.swift
+//  SkyCraftBuildAndFly
+//
+//  Erstellt von ChatGPT
+//  Diese SwiftUI-ContentView bettet einen SKView ein, der deine SpriteKit‑Szene (hier: MainMenuScene) anzeigt.
+//  So kannst du den gesamten Spiel-Content in eine moderne SwiftUI-App integrieren.
+//
+
+import SwiftUI
+import SpriteKit
+
+// MARK: - GameView: UIViewRepresentable
+/// Diese Struktur stellt einen SKView bereit und lädt die gewünschte SpriteKit-Szene.
+/// In diesem Beispiel wird die MainMenuScene präsentiert.
+struct GameView: UIViewRepresentable {
+    func makeUIView(context: Context) -> SKView {
+        // Erstelle einen SKView in voller Bildschirmgröße.
+        let skView = SKView(frame: UIScreen.main.bounds)
+        
+        // Optional: Debug-Informationen aktivieren.
+        skView.showsFPS = true
+        skView.showsNodeCount = true
+        skView.ignoresSiblingOrder = true
+        
+        // Erstelle die Startszene (MainMenuScene) und konfiguriere sie.
+        let scene = MainMenuScene(size: skView.bounds.size)
+        scene.scaleMode = .aspectFill
+        skView.presentScene(scene)
+        
+        return skView
+    }
+    
+    func updateUIView(_ uiView: SKView, context: Context) {
+        // Hier können Updates vorgenommen werden, falls sich Zustände ändern.
+    }
+}
+
+// MARK: - ContentView
+/// Die ContentView bettet den GameView ein und nutzt edgesIgnoringSafeArea, um den SKView
+/// über den gesamten Bildschirm anzuzeigen.
+struct ContentView: View {
+    var body: some View {
+        GameView()
+            .edgesIgnoringSafeArea(.all)
+    }
+}
+
+// MARK: - Preview
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
+}
