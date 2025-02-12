@@ -8,7 +8,7 @@
 //  Sie besteht aus mehreren statischen Layern (Himmel, Berge, Wald, Vordergrund),
 //  dynamischen Elementen (Wolken, Vögel, fallende Blätter),
 //  Wettereffekten (Regen, Schnee) und einem Tag-Nacht-Zyklus, der die Beleuchtung anpasst.
-//  Zusätzlich werden Soundeffekte ausgelöst, wenn sich das Wetter ändert (z. B. Regen oder Schnee).
+//  Zusätzlich werden Soundeffekte ausgelöst, wenn das Wetter wechselt (z. B. Regen- oder Schnee-Sounds).
 //
 
 import SpriteKit
@@ -30,7 +30,7 @@ class Environment {
     var rainEmitter: SKEmitterNode?
     var snowEmitter: SKEmitterNode?
     
-    // MARK: - Tag-/Nacht-Zyklus
+    // MARK: - Tag-Nacht-Zyklus
     /// dayTime: 1.0 = voller Tag, 0.0 = volle Nacht
     var dayTime: CGFloat = 1.0
     var timeElapsed: TimeInterval = 0
@@ -227,14 +227,14 @@ class Environment {
         forestLayer.color = SKColor(white: 0.9, alpha: 1.0 - dayTime * 0.4)
         forestLayer.colorBlendFactor = 0.3
         
-        // SOUND-LOGIK: Falls es dunkel wird, sollen Wetter-Sounds starten.
+        // SOUND-LOGIK:
+        // Wenn es sehr dunkel wird (Nacht), aktiviere zufällig Regen oder Schnee und spiele den entsprechenden Sound.
         if dayTime < 0.3 && currentWeather == "clear" {
-            // Entscheide zufällig zwischen Regen und Schnee:
             let weatherChance = Int(arc4random_uniform(100))
             if weatherChance < 30 {
                 currentWeather = "rain"
                 setupRain()
-                // Spiele einen Regen-Sound (Loop)
+                // Spiele Regen-Sound (Loop)
                 SoundManager.shared.playSoundEffect(filename: "rain_loop.wav")
             } else if weatherChance < 60 {
                 currentWeather = "snow"
@@ -242,22 +242,23 @@ class Environment {
                 SoundManager.shared.playSoundEffect(filename: "snow_loop.wav")
             }
         } else if dayTime > 0.5 && currentWeather != "clear" {
-            // Entferne Wettereffekte und stoppe den Wetter-Sound
+            // Entferne Wettereffekte und setze den Sound zurück
             if currentWeather == "rain" {
                 removeRain()
-                // Optional: Stoppe den Regen-Sound (siehe SoundManager-Implementierung)
+                // Optional: Füge hier Code ein, um den Regen-Sound zu stoppen.
             } else if currentWeather == "snow" {
                 removeSnow()
+                // Optional: Stoppe den Schnee-Sound.
             }
             currentWeather = "clear"
         }
     }
     
-    // MARK: - Update-Funktion
+    // MARK: - Update der Umgebung
     func update(deltaTime: TimeInterval, playerSpeed: CGFloat) {
         updateDayCycle(deltaTime: deltaTime)
         
-        // Parallax-Scrolling für statische Layer
+        // Parallax-Scrolling: Verschiebe die statischen Layer entsprechend ihrer Tiefe
         let parallaxFactors: [SKSpriteNode: CGFloat] = [
             skyLayer: 0.05,
             mountainLayer: 0.1,
@@ -271,7 +272,7 @@ class Environment {
             }
         }
         
-        // Aktualisiere dynamische Elemente
+        // Aktualisiere dynamische Elemente: Wolken und Vögel
         for cloud in cloudNodes {
             cloud.alpha = CGFloat.random(in: 0.6...0.9) * dayTime + 0.1
         }
