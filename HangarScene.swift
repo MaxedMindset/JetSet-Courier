@@ -15,6 +15,9 @@ class HangarScene: SKScene {
     var weightOption: CGFloat = 100.0
     var liftOption: CGFloat = 100.0
     var thrustOption: CGFloat = 100.0
+    // Direkt nach den anderen UI-Elementen in HangarScene:
+    var readinessLabel: SKLabelNode!
+
     
     override func didMove(to view: SKView) {
         self.backgroundColor = .darkGray
@@ -83,6 +86,15 @@ class HangarScene: SKScene {
         startFlightButton.fontColor = .yellow
         startFlightButton.position = CGPoint(x: size.width/2, y: size.height*0.2)
         addChild(startFlightButton)
+        
+        // Flugbereitschaftsstatus anzeigen
+        let readinessLabel = SKLabelNode(text: "Flugbereitschaft: Unbekannt")
+        readinessLabel.fontSize = 28
+        readinessLabel.fontColor = .white
+        readinessLabel.position = CGPoint(x: size.width/2, y: size.height*0.3)
+        readinessLabel.zPosition = 15
+        addChild(readinessLabel)
+
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -118,7 +130,33 @@ class HangarScene: SKScene {
                     let flightScene = FlightScene(size: size)
                     flightScene.scaleMode = .aspectFill
                     self.view?.presentScene(flightScene, transition: SKTransition.fade(withDuration: 1.0))
-                default:
+                    if node.name == "startFlight" {
+                    // Konfiguration speichern
+                    let config = AircraftConfiguration(weight: weightOption, lift: liftOption, thrust: thrustOption, stability: 1.0)
+                    AircraftConfigurationManager.shared.configuration = config
+
+                   // Aktualisiere das Readiness-Label
+                   let rating = AircraftSimulator.readinessRating(for: config)
+                   readinessLabel.text = "Flugbereitschaft: \(rating)"
+    
+                   // Option: Wenn das Flugzeug nicht flugbereit ist, zeige eine Warnung und verhindere den Wechsel.
+                   if AircraftSimulator.calculateFlightReadiness(for: config) < 50 {
+                   let warning = SKLabelNode(text: "Dein Flugzeug ist nicht flugbereit!")
+                   warning.fontSize = 28
+                   warning.fontColor = .red
+                   warning.position = CGPoint(x: size.width/2, y: size.height*0.15)
+                   warning.zPosition = 100
+                   addChild(warning)
+                   let wait = SKAction.wait(forDuration: 2.0)
+                   warning.run(SKAction.sequence([wait, SKAction.fadeOut(withDuration: 1.0), SKAction.removeFromParent()]))
+                   } else {
+                   // Wechsel in den Flugmodus, wenn das Flugzeug flugbereit ist.
+                   let flightScene = FlightScene(size: size)
+                   flightScene.scaleMode = .aspectFill
+                   self.view?.presentScene(flightScene, transition: SKTransition.fade(withDuration: 1.0))
+                   }
+                    }
+                    default:
                     break
                 }
             }
