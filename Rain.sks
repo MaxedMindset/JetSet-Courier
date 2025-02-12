@@ -1,0 +1,39 @@
+archive-version: 3
+classes:
+- SKEmitterNode
+- SKKeyframeSequence
+root:
+  particleTexture: {fileName: "rainDrop"}    # Stelle sicher, dass "rainDrop.png" im Asset-Katalog vorhanden ist.
+  particleBirthRate: 150
+  particleLifetime: 1.5
+  particleLifetimeRange: 0.3
+  emitterShape: point
+  particlePosition: {x: 0.0, y: 0.0}
+  particlePositionRange: {x: 640.0, y: 0.0}
+  particleSpeed: 300
+  particleSpeedRange: 50
+  particleAlpha: 0.8
+  particleAlphaRange: 0.0
+  particleAlphaSpeed: -0.5
+  particleScale: 0.1
+  particleScaleRange: 0.05
+  particleScaleSpeed: 0
+  particleColor: {r: 0.6, g: 0.6, b: 1.0, a: 1.0}
+  particleColorBlendFactor: 1.0
+  particleBlendMode: alpha
+  emissionAngle: 270
+  emissionAngleRange: 5
+  fieldBitMask: 0
+  particleRotation: 0
+  particleRotationRange: 0
+  particleRotationSpeed: 0
+  particleMass: 0.01
+  particleMassRange: 0.005
+  particleCharge: 0
+  particleChargeRange: 0
+  particleAngularVelocity: 0
+  particleAngularVelocityRange: 0
+  particleFriction: 0
+  particleFrictionRange: 0
+  particleAirResistance: 0
+  particleAirResistanceRange: 0
