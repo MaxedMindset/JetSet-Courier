@@ -17,6 +17,7 @@ class HangarScene: SKScene {
     var thrustOption: CGFloat = 100.0
     // Direkt nach den anderen UI-Elementen in HangarScene:
     var readinessLabel: SKLabelNode!
+    var aircraftPreview: Aircraft!
 
     
     override func didMove(to view: SKView) {
@@ -95,6 +96,21 @@ class HangarScene: SKScene {
         readinessLabel.zPosition = 15
         addChild(readinessLabel)
 
+        // Erstelle einen kleinen Flugzeug-Preview für den Testlauf
+        aircraftPreview = Aircraft(configuration: AircraftConfigurationManager.shared.configuration)
+        aircraftPreview.position = CGPoint(x: size.width * 0.2, y: size.height * 0.7)
+        aircraftPreview.setScale(0.5) // kleiner Maßstab für die Vorschau
+        addChild(aircraftPreview)
+        
+        let testRunButton = SKLabelNode(text: "Test Run")
+        testRunButton.name = "testRunButton"
+        testRunButton.fontSize = 30
+        testRunButton.fontColor = .orange
+        testRunButton.position = CGPoint(x: size.width/2, y: size.height*0.1)
+        addChild(testRunButton)
+
+
+
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -149,7 +165,12 @@ class HangarScene: SKScene {
                    addChild(warning)
                    let wait = SKAction.wait(forDuration: 2.0)
                    warning.run(SKAction.sequence([wait, SKAction.fadeOut(withDuration: 1.0), SKAction.removeFromParent()]))
-                   } else {
+                   } 
+                        else if node.name == "testRunButton" {
+                  runTestRun()
+                        }
+
+                        else {
                    // Wechsel in den Flugmodus, wenn das Flugzeug flugbereit ist.
                    let flightScene = FlightScene(size: size)
                    flightScene.scaleMode = .aspectFill
@@ -161,5 +182,31 @@ class HangarScene: SKScene {
                 }
             }
         }
+    }
+}
+override func runTestRun() {
+    // Simuliere einen kurzen Startbahn-Testlauf
+    // Das Flugzeug fährt zunächst in eine bestimmte Richtung, hebt kurz ab und landet wieder
+    let testActionUp = SKAction.moveBy(x: size.width * 0.4, y: 50, duration: 2.0)
+    let testActionDown = SKAction.moveBy(x: size.width * 0.4, y: -50, duration: 2.0)
+    let testSequence = SKAction.sequence([testActionUp, testActionDown])
+    aircraftPreview.run(testSequence) { [weak self] in
+        guard let self = self else { return }
+        // Bewertung basierend auf der aktuellen Konfiguration
+        let config = AircraftConfigurationManager.shared.configuration
+        let readiness = AircraftSimulator.calculateFlightReadiness(for: config)
+        let resultLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        resultLabel.position = CGPoint(x: self.size.width/2, y: self.size.height*0.2)
+        resultLabel.zPosition = 100
+        if readiness >= 50 {
+            resultLabel.text = "Test Run Successful!"
+            resultLabel.fontColor = .green
+        } else {
+            resultLabel.text = "Test Run Failed! Adjust your design."
+            resultLabel.fontColor = .red
+        }
+        self.addChild(resultLabel)
+        let wait = SKAction.wait(forDuration: 2.0)
+        resultLabel.run(SKAction.sequence([wait, SKAction.fadeOut(withDuration: 1.0), SKAction.removeFromParent()]))
     }
 }
