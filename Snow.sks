@@ -1,0 +1,39 @@
+archive-version: 3
+classes:
+- SKEmitterNode
+- SKKeyframeSequence
+root:
+  particleTexture: {fileName: "snowflake"}    # Stelle sicher, dass "snowflake.png" im Asset-Katalog vorhanden ist.
+  particleBirthRate: 50
+  particleLifetime: 4.0
+  particleLifetimeRange: 1.0
+  emitterShape: point
+  particlePosition: {x: 0.0, y: 0.0}
+  particlePositionRange: {x: 640.0, y: 0.0}
+  particleSpeed: 50
+  particleSpeedRange: 10
+  particleAlpha: 0.9
+  particleAlphaRange: 0.0
+  particleAlphaSpeed: -0.1
+  particleScale: 0.2
+  particleScaleRange: 0.1
+  particleScaleSpeed: 0
+  particleColor: {r: 1.0, g: 1.0, b: 1.0, a: 1.0}
+  particleColorBlendFactor: 1.0
+  particleBlendMode: add
+  emissionAngle: 270
+  emissionAngleRange: 10
+  fieldBitMask: 0
+  particleRotation: 0
+  particleRotationRange: 0
+  particleRotationSpeed: 0
+  particleMass: 0.01
+  particleMassRange: 0.005
+  particleCharge: 0
+  particleChargeRange: 0
+  particleAngularVelocity: 0
+  particleAngularVelocityRange: 0
+  particleFriction: 0
+  particleFrictionRange: 0
+  particleAirResistance: 0
+  particleAirResistanceRange: 0
