@@ -76,6 +76,35 @@ struct ContentView: View {
                                 .padding(.horizontal, 40)
                             
                             Spacer()
+
+                            // NavigationLink zum Flugzeugbau-Modus
+                            NavigationLink(destination: BuildYourPlaneView().edgesIgnoringSafeArea(.all)) {
+                            Text("Build Your Plane")
+                                .font(.system(size: 32, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(RoundedRectangle(cornerRadius: 12).fill(Color.green))
+                                .padding(.horizontal, 40)
+                }
+                
+                // NavigationLink zum Flugmodus
+                NavigationLink(destination: StartFlightView().edgesIgnoringSafeArea(.all)) {
+                    Text("Start Flight")
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.blue))
+                        .padding(.horizontal, 40)
+                }
+                
+                Spacer()
+            }
+            .navigationBarHidden(true)
+        }
+    }
+}
                             
                             // Play-Button
                             Button(action: {
