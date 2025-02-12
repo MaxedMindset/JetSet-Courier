@@ -3,27 +3,29 @@
 //  SkyCraftBuildAndFly
 //
 //  Erstellt von ChatGPT
-//  Diese SwiftUI-ContentView bettet einen SKView ein, der deine SpriteKit‑Szene (hier: MainMenuScene) anzeigt.
-//  So kannst du den gesamten Spiel-Content in eine moderne SwiftUI-App integrieren.
+//
+//  Diese SwiftUI-ContentView bettet den SKView ein, der deine SpriteKit-Szene (hier: MainMenuScene) anzeigt.
+//  Zusätzlich wird ein dekoratives Overlay angezeigt, das einen Titel, einen Hintergrundblur und einen "Play"-Button umfasst.
+//  Mit dem "Play"-Button wird das Overlay ausgeblendet und du kannst direkt spielen.
 //
 
 import SwiftUI
 import SpriteKit
 
-// MARK: - GameView: UIViewRepresentable
-/// Diese Struktur stellt einen SKView bereit und lädt die gewünschte SpriteKit-Szene.
-/// In diesem Beispiel wird die MainMenuScene präsentiert.
-struct GameView: UIViewRepresentable {
+// MARK: - GameViewRepresentable
+/// Dieses UIViewRepresentable bindet einen SKView ein, lädt die gewünschte SpriteKit-Szene (MainMenuScene)
+/// und stellt den Spielinhalt in einer vollflächigen Ansicht bereit.
+struct GameViewRepresentable: UIViewRepresentable {
     func makeUIView(context: Context) -> SKView {
         // Erstelle einen SKView in voller Bildschirmgröße.
         let skView = SKView(frame: UIScreen.main.bounds)
         
-        // Optional: Debug-Informationen aktivieren.
+        // Optional: Debug-Optionen aktivieren (können in der Produktion ausgeschaltet werden).
         skView.showsFPS = true
         skView.showsNodeCount = true
         skView.ignoresSiblingOrder = true
         
-        // Erstelle die Startszene (MainMenuScene) und konfiguriere sie.
+        // Erstelle und präsentiere die Startszene – hier wird die MainMenuScene verwendet.
         let scene = MainMenuScene(size: skView.bounds.size)
         scene.scaleMode = .aspectFill
         skView.presentScene(scene)
@@ -32,21 +34,90 @@ struct GameView: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: SKView, context: Context) {
-        // Hier können Updates vorgenommen werden, falls sich Zustände ändern.
+        // Falls du dynamische Updates am SKView vornehmen möchtest, kannst du diesen Bereich nutzen.
     }
 }
 
 // MARK: - ContentView
-/// Die ContentView bettet den GameView ein und nutzt edgesIgnoringSafeArea, um den SKView
-/// über den gesamten Bildschirm anzuzeigen.
+/// Die ContentView kombiniert den GameViewRepresentable mit einem dekorativen Overlay.
+/// Das Overlay enthält einen Titel, einen Hintergrundblur und einen "Play"-Button, um das Spiel zu starten.
 struct ContentView: View {
+    // Mit dieser State-Variable wird gesteuert, ob das Overlay angezeigt wird.
+    @State private var showOverlay: Bool = true
+    
     var body: some View {
-        GameView()
-            .edgesIgnoringSafeArea(.all)
+        ZStack {
+            // Der SKView, der die SpriteKit-Szene enthält.
+            GameViewRepresentable()
+                .edgesIgnoringSafeArea(.all)
+            
+            // Dekoratives Overlay, das den Einstieg ins Spiel verschönert.
+            if showOverlay {
+                // Das Overlay verwendet einen ZStack, um einen halbtransparenten Hintergrund mit Blur-Effekt zu erzeugen.
+                ZStack {
+                    // Hintergrund: Ein Blur-Effekt
+                    VisualEffectBlur(blurStyle: .systemUltraThinMaterialDark)
+                        .edgesIgnoringSafeArea(.all)
+                    
+                    VStack(spacing: 40) {
+                        Spacer()
+                        
+                        // Titel
+                        Text("SkyCraft: Build & Fly")
+                            .font(.system(size: 48, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .shadow(color: .black, radius: 2, x: 2, y: 2)
+                        
+                        // Eine kurze Beschreibung oder Slogan
+                        Text("Bau dein Flugzeug. Teste deine Physik. Erlebe den Flug deines Lebens!")
+                            .font(.system(size: 20, weight: .medium, design: .rounded))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                        
+                        Spacer()
+                        
+                        // Play-Button: Schaltet das Overlay aus, um ins Spiel zu starten.
+                        Button(action: {
+                            withAnimation(.easeOut(duration: 0.5)) {
+                                showOverlay = false
+                            }
+                        }) {
+                            Text("Play")
+                                .font(.system(size: 32, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.blue)
+                                        .shadow(color: Color.black.opacity(0.3), radius: 5, x: 2, y: 2)
+                                )
+                                .padding(.horizontal, 50)
+                        }
+                        .padding(.bottom, 50)
+                    }
+                }
+                .transition(.opacity)
+            }
+        }
     }
 }
 
-// MARK: - Preview
+// MARK: - VisualEffectBlur
+/// Diese Hilfskomponente implementiert einen Blur-Effekt in SwiftUI, der in iOS 13+ verfügbar ist.
+/// Falls du iOS 14+ nutzt, kannst du alternativ .blur(radius:) nutzen, aber dieser Ansatz bietet mehr Flexibilität.
+struct VisualEffectBlur: UIViewRepresentable {
+    var blurStyle: UIBlurEffect.Style = .systemMaterial
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        return UIVisualEffectView(effect: UIBlurEffect(style: blurStyle))
+    }
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
+        uiView.effect = UIBlurEffect(style: blurStyle)
+    }
+}
+
+// MARK: - ContentView_Previews
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
