@@ -31,6 +31,14 @@ class MainMenuScene: SKScene {
         flightButton.fontColor = .yellow
         flightButton.position = CGPoint(x: size.width/2, y: size.height*0.4)
         addChild(flightButton)
+        
+        let shopButton = SKLabelNode(text: "Shop")
+        shopButton.name = "shopButton"
+        shopButton.fontSize = 30
+        shopButton.fontColor = .orange
+        shopButton.position = CGPoint(x: size.width/2, y: size.height*0.3)
+        addChild(shopButton)
+
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -46,6 +54,12 @@ class MainMenuScene: SKScene {
                 let flightScene = FlightScene(size: size)
                 flightScene.scaleMode = .aspectFill
                 self.view?.presentScene(flightScene, transition: SKTransition.fade(withDuration: 1.0))
+                else if node.name == "shopButton" {
+                let shopScene = ShopScene(size: size)
+                shopScene.scaleMode = .aspectFill
+                self.view?.presentScene(shopScene, transition: SKTransition.fade(withDuration: 1.0))
+}
+
             }
         }
     }
