@@ -88,15 +88,15 @@ struct ContentView: View {
                                 .padding(.horizontal, 40)
                 }
                 
-                // NavigationLink zum Flugmodus
-                NavigationLink(destination: StartFlightView().edgesIgnoringSafeArea(.all)) {
-                    Text("Start Flight")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.blue))
-                        .padding(.horizontal, 40)
+                            // NavigationLink zum Flugmodus
+                            NavigationLink(destination: StartFlightView().edgesIgnoringSafeArea(.all)) {
+                            Text("Start Flight")
+                                .font(.system(size: 32, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(RoundedRectangle(cornerRadius: 12).fill(Color.blue))
+                                .padding(.horizontal, 40)
                 }
                 
                 Spacer()
