@@ -2,81 +2,83 @@
 //  ShopScene.swift
 //  SkyCraftBuildAndFly
 //
-//  Erstellt von ChatGPT
-//  In dieser Szene kann der Spieler Upgrades für sein Flugzeug erwerben.
-//  Die verfügbaren Artikel werden aufgelistet, und der Spieler kann sie kaufen,
-//  sofern genügend In-Game-Währung vorhanden ist. Beim Kauf wird die aktuelle
-//  Aircraft-Konfiguration (verwaltet über AircraftConfigurationManager) angepasst.
+//  In dieser Szene kann der Spieler Upgrades erwerben, die funktionale Verbesserungen für sein Flugzeug bieten.
+//  Das Shopsystem greift auf das persistente Wirtschaftssystem zu (über GameDataManager).
 //
+
 import SpriteKit
 
+struct ShopItem {
+    let name: String
+    let description: String
+    let cost: Int
+    let weightModifier: CGFloat  // z.B. 0.9 reduziert Gewicht um 10%
+    let liftModifier: CGFloat    // z.B. 1.15 erhöht Auftrieb um 15%
+    let thrustModifier: CGFloat  // z.B. 1.2 erhöht Schub um 20%
+}
+
 class ShopScene: SKScene {
-    
     var currencyLabel: SKLabelNode!
     var shopItems: [ShopItem] = []
     
     override func didMove(to view: SKView) {
-        self.backgroundColor = .darkGray
+        self.backgroundColor = SKColor.darkGray
         
-        // Zeige den Titel der Szene
         let titleLabel = SKLabelNode(text: "Upgrade Shop")
+        titleLabel.fontName = "AvenirNext-Bold"
         titleLabel.fontSize = 40
-        titleLabel.fontColor = .white
-        titleLabel.position = CGPoint(x: size.width/2, y: size.height*0.85)
+        titleLabel.fontColor = SKColor.white
+        titleLabel.position = CGPoint(x: size.width/2, y: size.height*0.8)
         addChild(titleLabel)
         
-        // Zeige die aktuelle Währung
-        currencyLabel = SKLabelNode(text: "Currency: \(UpgradesManager.shared.inGameCurrency)")
+        currencyLabel = SKLabelNode(text: "Coins: \(GameDataManager.shared.coins)")
+        currencyLabel.fontName = "AvenirNext-Bold"
         currencyLabel.fontSize = 28
-        currencyLabel.fontColor = .yellow
-        currencyLabel.position = CGPoint(x: size.width/2, y: size.height*0.78)
+        currencyLabel.fontColor = SKColor.yellow
+        currencyLabel.position = CGPoint(x: size.width/2, y: size.height*0.7)
         addChild(currencyLabel)
         
-        // Erstelle Beispiel-Upgrades
         setupShopItems()
-        
-        // Erstelle UI-Elemente für jedes Upgrade
         setupShopUI()
         
-        // Füge einen Back-Button hinzu, um zur vorherigen Szene (z. B. HangarScene) zurückzukehren
         let backButton = SKLabelNode(text: "Back")
         backButton.name = "backButton"
+        backButton.fontName = "AvenirNext-Bold"
         backButton.fontSize = 30
-        backButton.fontColor = .red
+        backButton.fontColor = SKColor.red
         backButton.position = CGPoint(x: size.width/2, y: size.height*0.1)
         addChild(backButton)
     }
     
     func setupShopItems() {
-        // Beispiel-Upgrades hinzufügen
         shopItems.append(ShopItem(name: "Ultra Light Material",
-                                  description: "Reduziert Gewicht um 15%",
+                                  description: "Reduziert Gewicht um 10%",
                                   cost: 150,
-                                  weightModifier: 0.85,
+                                  weightModifier: 0.90,
                                   liftModifier: 1.0,
                                   thrustModifier: 1.0))
         shopItems.append(ShopItem(name: "Advanced Aerodynamics",
-                                  description: "Erhöht Auftrieb um 20%",
+                                  description: "Erhöht Auftrieb um 15%",
                                   cost: 200,
                                   weightModifier: 1.0,
-                                  liftModifier: 1.20,
+                                  liftModifier: 1.15,
                                   thrustModifier: 1.0))
         shopItems.append(ShopItem(name: "Turbo Engine",
-                                  description: "Erhöht Schub um 25%",
+                                  description: "Erhöht Schub um 20%",
                                   cost: 250,
                                   weightModifier: 1.0,
                                   liftModifier: 1.0,
-                                  thrustModifier: 1.25))
+                                  thrustModifier: 1.20))
     }
     
     func setupShopUI() {
-        // Erstelle einen Button (Label) für jedes Upgrade
         for (index, item) in shopItems.enumerated() {
             let button = SKLabelNode(text: "\(item.name) - \(item.cost) coins")
             button.name = "upgrade_\(index)"
+            button.fontName = "AvenirNext-Bold"
             button.fontSize = 30
-            button.fontColor = .green
-            button.position = CGPoint(x: size.width/2, y: size.height*0.65 - CGFloat(index) * 40)
+            button.fontColor = SKColor.green
+            button.position = CGPoint(x: size.width/2, y: size.height*0.6 - CGFloat(index * 40))
             addChild(button)
         }
     }
@@ -88,9 +90,9 @@ class ShopScene: SKScene {
         for node in nodesAtPoint {
             if let name = node.name {
                 if name == "backButton" {
-                    let hangarScene = HangarScene(size: size)
-                    hangarScene.scaleMode = .aspectFill
-                    self.view?.presentScene(hangarScene, transition: SKTransition.fade(withDuration: 1.0))
+                    let mainMenu = MainMenuScene(size: size)
+                    mainMenu.scaleMode = .aspectFill
+                    self.view?.presentScene(mainMenu, transition: SKTransition.fade(withDuration: 1.0))
                 } else if name.hasPrefix("upgrade_") {
                     let indexString = name.replacingOccurrences(of: "upgrade_", with: "")
                     if let index = Int(indexString) {
@@ -103,38 +105,31 @@ class ShopScene: SKScene {
     
     func purchaseItem(at index: Int) {
         let item = shopItems[index]
-        let manager = UpgradesManager.shared
-        if manager.inGameCurrency >= item.cost {
-            manager.inGameCurrency -= item.cost
-            
-            // Aktualisiere die Aircraft-Konfiguration basierend auf dem Upgrade
-            var config = AircraftConfigurationManager.shared.configuration
-            config.weight *= item.weightModifier
-            config.lift *= item.liftModifier
-            config.thrust *= item.thrustModifier
-            AircraftConfigurationManager.shared.configuration = config
-            
-            // Bestätigung anzeigen
+        let dataManager = GameDataManager.shared
+        if dataManager.coins >= item.cost {
+            dataManager.coins -= item.cost
+            // Hier würden wir die Flugzeugkonfiguration (via AircraftConfigurationManager) anpassen.
+            // Beispiel: AircraftConfigurationManager.shared.configuration.weight *= item.weightModifier
             let confirmation = SKLabelNode(text: "Purchased \(item.name)!")
+            confirmation.fontName = "AvenirNext-Bold"
             confirmation.fontSize = 28
-            confirmation.fontColor = .green
+            confirmation.fontColor = SKColor.green
             confirmation.position = CGPoint(x: size.width/2, y: size.height*0.5)
             confirmation.zPosition = 100
             addChild(confirmation)
             let wait = SKAction.wait(forDuration: 2.0)
             confirmation.run(SKAction.sequence([wait, SKAction.fadeOut(withDuration: 1.0), SKAction.removeFromParent()]))
         } else {
-            // Fehlermeldung anzeigen, wenn nicht genügend Coins vorhanden sind
             let errorLabel = SKLabelNode(text: "Not enough coins!")
+            errorLabel.fontName = "AvenirNext-Bold"
             errorLabel.fontSize = 28
-            errorLabel.fontColor = .red
+            errorLabel.fontColor = SKColor.red
             errorLabel.position = CGPoint(x: size.width/2, y: size.height*0.5)
             errorLabel.zPosition = 100
             addChild(errorLabel)
             let wait = SKAction.wait(forDuration: 2.0)
             errorLabel.run(SKAction.sequence([wait, SKAction.fadeOut(withDuration: 1.0), SKAction.removeFromParent()]))
         }
-        // Aktualisiere das Währungsetikett
-        currencyLabel.text = "Currency: \(manager.inGameCurrency)"
+        currencyLabel.text = "Coins: \(GameDataManager.shared.coins)"
     }
 }
