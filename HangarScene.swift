@@ -1,11 +1,25 @@
 import SwiftUI
 
 struct HangarSceneView: View {
-    // Statusvariablen zum Verfolgen der Position und des Status des Teils
-    @State private var dragOffset: CGSize = .zero
-    @State private var partAttached: Bool = false
-    @State private var airplaneGlobalFrame: CGRect = .zero
-    
+    // Statusvariablen für die einzelnen Komponenten
+    @State private var hullAttached: Bool = false
+    @State private var hullOffset: CGSize = .zero
+
+    @State private var wingAttached: Bool = false
+    @State private var wingOffset: CGSize = .zero
+
+    @State private var tailAttached: Bool = false
+    @State private var tailOffset: CGSize = .zero
+
+    @State private var landingGearAttached: Bool = false
+    @State private var landingGearOffset: CGSize = .zero
+
+    @State private var engineAttached: Bool = false
+    @State private var engineOffset: CGSize = .zero
+
+    // Erfasste Position der zentralen Drop-Zone (Flugzeugzentrum)
+    @State private var airplaneCenter: CGPoint = .zero
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -14,87 +28,149 @@ struct HangarSceneView: View {
                     .resizable()
                     .scaledToFill()
                     .edgesIgnoringSafeArea(.all)
-                
-                // 2. Flugzeug in der Mitte
-                Image("airplane")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 300, height: 300)
-                    // Erfasse den globalen Rahmen des Flugzeugs, um später Drops zu validieren
-                    .background(
-                        GeometryReader { airplaneGeo in
-                            Color.clear
-                                .onAppear {
-                                    let frame = airplaneGeo.frame(in: .global)
-                                    DispatchQueue.main.async {
-                                        self.airplaneGlobalFrame = frame
-                                    }
-                                }
-                                .onChange(of: airplaneGeo.frame(in: .global)) { newFrame in
-                                    DispatchQueue.main.async {
-                                        self.airplaneGlobalFrame = newFrame
-                                    }
-                                }
+
+                // 2. Top-Bar (Level, Geld, Ranglistenplatz)
+                TopBarView(level: "Level 1", money: "$1000", rank: "Platz 5")
+                    .position(x: geometry.size.width/2, y: 40)
+
+                // 3. Zentrale Drop-Zone (als Umriss angezeigt)
+                ZStack {
+                    // Drop-Zone-Kontur (optional)
+                    Circle()
+                        .stroke(Color.gray, lineWidth: 2)
+                        .frame(width: 200, height: 200)
+                        .opacity(0.5)
+
+                    // Angeheftete Komponenten werden hier relativ zur Mitte angezeigt
+
+                    if hullAttached {
+                        Image("hull")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 150, height: 150)
+                            .offset(hullOffset)
+                    }
+                    if wingAttached {
+                        Image("wing")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 100, height: 100)
+                            .offset(wingOffset)
+                    }
+                    if engineAttached {
+                        Image("engine")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 80, height: 80)
+                            .offset(engineOffset)
+                    }
+                    if landingGearAttached {
+                        Image("landingGear")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 80, height: 80)
+                            .offset(landingGearOffset)
+                    }
+                    if tailAttached {
+                        Image("tail")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 80, height: 80)
+                            .offset(tailOffset)
+                    }
+                }
+                // Zentriere die Drop-Zone
+                .position(x: geometry.size.width/2, y: geometry.size.height/2)
+                // Ermittle die Mitte der Drop-Zone
+                .background(
+                    GeometryReader { geo in
+                        Color.clear
+                            .onAppear {
+                                airplaneCenter = CGPoint(x: geo.size.width/2, y: geo.size.height/2)
+                            }
+                    }
+                )
+
+                // 4. Palette der Bauteile (unten)
+                VStack {
+                    Spacer()
+                    HStack(spacing: 20) {
+                        // Rumpf (Hauptstruktur)
+                        DraggablePartView(
+                            imageName: "hull",
+                            targetOffset: .zero,  // Ziel: exakt in der Mitte
+                            initialPosition: CGPoint(x: 60, y: geometry.size.height - 60),
+                            attached: $hullAttached,
+                            dragOffset: $hullOffset,
+                            airplaneCenter: CGPoint(x: geometry.size.width/2, y: geometry.size.height/2)
+                        )
+
+                        // Flügel (links vom Zentrum)
+                        DraggablePartView(
+                            imageName: "wing",
+                            targetOffset: CGSize(width: -100, height: 0),
+                            initialPosition: CGPoint(x: 140, y: geometry.size.height - 60),
+                            attached: $wingAttached,
+                            dragOffset: $wingOffset,
+                            airplaneCenter: CGPoint(x: geometry.size.width/2, y: geometry.size.height/2)
+                        )
+
+                        // Motor (vorderer Bereich, oben)
+                        DraggablePartView(
+                            imageName: "engine",
+                            targetOffset: CGSize(width: 0, height: -100),
+                            initialPosition: CGPoint(x: 220, y: geometry.size.height - 60),
+                            attached: $engineAttached,
+                            dragOffset: $engineOffset,
+                            airplaneCenter: CGPoint(x: geometry.size.width/2, y: geometry.size.height/2)
+                        )
+
+                        // Fahrwerk (unterhalb des Zentrums)
+                        DraggablePartView(
+                            imageName: "landingGear",
+                            targetOffset: CGSize(width: 0, height: 50),
+                            initialPosition: CGPoint(x: 300, y: geometry.size.height - 60),
+                            attached: $landingGearAttached,
+                            dragOffset: $landingGearOffset,
+                            airplaneCenter: CGPoint(x: geometry.size.width/2, y: geometry.size.height/2)
+                        )
+
+                        // Leitwerk (hinten, z. B. am Heck)
+                        DraggablePartView(
+                            imageName: "tail",
+                            targetOffset: CGSize(width: 0, height: 100),
+                            initialPosition: CGPoint(x: 380, y: geometry.size.height - 60),
+                            attached: $tailAttached,
+                            dragOffset: $tailOffset,
+                            airplaneCenter: CGPoint(x: geometry.size.width/2, y: geometry.size.height/2)
+                        )
+                    }
+                    .padding(.bottom, 20)
+                }
+
+                // 5. Bauplan-Button in der unteren rechten Ecke
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            // Aktion beim Tippen auf den Bauplan (z. B. Navigation zu Detailansicht)
+                        }) {
+                            Image("bauplan")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 80, height: 80)
                         }
-                    )
-                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                
-                // 3. Das Flugzeugteil
-                if partAttached {
-                    // Wenn das Teil bereits angebracht ist, kann es weiter verschoben werden
-                    Image("part1")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 50, height: 50)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                        .offset(dragOffset)
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    self.dragOffset = value.translation
-                                }
-                                .onEnded { value in
-                                    self.dragOffset = value.translation
-                                }
-                        )
-                } else {
-                    // Zeige das Teil in einem Palette-Bereich (z. B. unten links)
-                    Image("part1")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 50, height: 50)
-                        .position(x: 100, y: geometry.size.height - 100)
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    self.dragOffset = value.translation
-                                }
-                                .onEnded { value in
-                                    // Berechne den neuen globalen Standort des Teils
-                                    let startPosition = CGPoint(x: 100, y: geometry.size.height - 100)
-                                    let dropPosition = CGPoint(
-                                        x: startPosition.x + value.translation.width,
-                                        y: startPosition.y + value.translation.height
-                                    )
-                                    
-                                    // Prüfe, ob der Drop innerhalb des Flugzeugrahmens liegt
-                                    if airplaneGlobalFrame.contains(dropPosition) {
-                                        // Berechne den Offset relativ zur Mitte des Flugzeugs:
-                                        let airplaneCenter = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                                        let relativeOffset = CGSize(
-                                            width: dropPosition.x - airplaneCenter.x,
-                                            height: dropPosition.y - airplaneCenter.y
-                                        )
-                                        self.dragOffset = relativeOffset
-                                        self.partAttached = true
-                                    } else {
-                                        // Falls nicht in den Flugzeugbereich gezogen, zurücksetzen
-                                        self.dragOffset = .zero
-                                    }
-                                }
-                        )
+                        .padding()
+                    }
                 }
             }
         }
+    }
+}
+
+struct HangarSceneView_Previews: PreviewProvider {
+    static var previews: some View {
+        HangarSceneView()
     }
 }
