@@ -2,9 +2,7 @@
 //  FlightScene.swift
 //  SkyCraftBuildAndFly
 //
-//  Diese erweiterte FlightScene simuliert realistischere aerodynamische Effekte wie Auftrieb, Luftwiderstand,
-//  Trägheit und Stalleffekte. Zudem werden Umwelteinflüsse (Wind, Turbulenzen) einbezogen.
-//  Ein HUD zeigt Echtzeit-Daten wie Geschwindigkeit, Flughöhe, Treibstoff, Schadensstatus und Flugzeit an.
+//  Erweiterte FlightScene mit realistischeren physikalischen Effekten und einem HUD, das Echtzeit-Flugstatistiken anzeigt.
 //
 
 import SpriteKit
@@ -22,21 +20,16 @@ class FlightScene: SKScene {
     var damageLabel: SKLabelNode!
     var flightTimeLabel: SKLabelNode!
     
-    // Simulierte physikalische Parameter
-    var currentSpeed: CGFloat = 300
-    var currentAltitude: CGFloat = 1500
-    var fuelLevel: CGFloat = 100.0
-    var damage: CGFloat = 0.0
-    var flightTime: TimeInterval = 0.0
+    // Zugriff auf den FlightStatsManager
+    let statsManager = FlightStatsManager.shared
     
-    // Wind- und Turbulenzeffekte
-    var windForce: CGFloat = 0
-    var turbulenceForce: CGFloat = 0
+    // Zeitverwaltung
+    var lastUpdateTime: TimeInterval = 0
     
     override func didMove(to view: SKView) {
         self.backgroundColor = SKColor.cyan
         
-        // Hintergrund (einfacher Himmel)
+        // Einfacher Hintergrund (hier kannst du dein eigenes Design einfügen)
         let sky = SKSpriteNode(color: SKColor.cyan, size: CGSize(width: size.width, height: size.height))
         sky.position = CGPoint(x: size.width / 2, y: size.height / 2)
         sky.zPosition = -1
@@ -59,7 +52,12 @@ class FlightScene: SKScene {
         backButton.position = CGPoint(x: size.width / 2, y: size.height * 0.1)
         addChild(backButton)
         
+        // Setup HUD
         setupHUD()
+        
+        // Starte das Tracking der Flugdaten
+        statsManager.resetStats()
+        statsManager.startTracking()
     }
     
     func setupHUD() {
@@ -102,55 +100,58 @@ class FlightScene: SKScene {
             if node.name == "backButton" {
                 let mainMenu = MainMenuScene(size: size)
                 mainMenu.scaleMode = .aspectFill
+                statsManager.stopTracking()
                 self.view?.presentScene(mainMenu, transition: SKTransition.fade(withDuration: 1.0))
                 return
             }
         }
     }
     
-    // Steuerung über touchesMoved: Wischgesten zum Steigen/Sinken
+    // Steuerung: TouchesMoved steuern den Auf- und Abstieg
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
-        let previous = touch.previousLocation(in: self)
-        let current = touch.location(in: self)
-        let deltaY = current.y - previous.y
+        let previousLocation = touch.previousLocation(in: self)
+        let currentLocation = touch.location(in: self)
+        let deltaY = currentLocation.y - previousLocation.y
         planeSprite.physicsBody?.applyImpulse(CGVector(dx: 0, dy: deltaY * 0.1))
     }
     
     override func update(_ currentTime: TimeInterval) {
-        // Erhöhe Flugzeit
-        flightTime += 1.0 / 60.0
+        // Delta Time berechnen
+        let dt = currentTime - lastUpdateTime
+        lastUpdateTime = currentTime
+        if dt > 1 { return }  // Schutz gegen zu hohe dt
         
-        // Simuliere einfache Physik: Luftwiderstand und Auftrieb
-        // Hier ein rudimentäres Beispiel:
-        let airResistance = currentSpeed * 0.02
-        currentSpeed = max(0, currentSpeed - airResistance)
+        // --- Erweiterte physikalische Simulation ---
+        // Luftwiderstand: Reduziert Geschwindigkeit
+        let airResistance = statsManager.currentSpeed * 0.02
+        statsManager.currentSpeed = max(0, statsManager.currentSpeed - airResistance * CGFloat(dt))
         
-        // Simuliere Auftrieb: Wenn Geschwindigkeit hoch genug, steigt das Flugzeug, sonst sinkt es.
-        if currentSpeed > 300 {
-            planeSprite.position.y += 1
+        // Auftrieb: Wenn Geschwindigkeit hoch genug, steigt das Flugzeug, sonst sinkt es
+        if statsManager.currentSpeed > 300 {
+            planeSprite.position.y += 1 * CGFloat(dt * 60)
         } else {
-            planeSprite.position.y -= 1
+            planeSprite.position.y -= 1 * CGFloat(dt * 60)
         }
         
-        // Simuliere Wind- und Turbulenzeffekte
-        windForce = CGFloat.random(in: -5...5)
-        turbulenceForce = CGFloat.random(in: -3...3)
+        // Wind- und Turbulenzeffekte: Zufällige Kräfte in horizontaler Richtung
+        let windForce = CGFloat.random(in: -5...5)
+        let turbulenceForce = CGFloat.random(in: -3...3)
         planeSprite.physicsBody?.applyForce(CGVector(dx: windForce + turbulenceForce, dy: 0))
         
-        // Aktualisiere HUD-Labels
-        speedLabel.text = "Speed: \(Int(currentSpeed)) km/h"
-        altitudeLabel.text = "Altitude: \(Int(planeSprite.position.y)) m"
-        fuelLabel.text = "Fuel: \(Int(fuelLevel))%"
-        damageLabel.text = "Damage: \(Int(damage))%"
-        flightTimeLabel.text = String(format: "Time: %.1f s", flightTime)
+        // Treibstoffverbrauch simulieren
+        statsManager.fuelLevel = max(0, statsManager.fuelLevel - 0.05 * CGFloat(dt * 60))
         
-        // Simuliere Treibstoffverbrauch
-        fuelLevel = max(0, fuelLevel - 0.05)
-        
-        // Simuliere Stalleffekt: Wenn die Geschwindigkeit zu niedrig ist, sinkt das Flugzeug schneller
-        if currentSpeed < 250 {
-            planeSprite.position.y -= 2
+        // Stalleffekt: Wenn Geschwindigkeit unter 250 km/h sinkt das Flugzeug stärker
+        if statsManager.currentSpeed < 250 {
+            planeSprite.position.y -= 2 * CGFloat(dt * 60)
         }
+        
+        // --- HUD Aktualisierung ---
+        speedLabel.text = "Speed: \(Int(statsManager.currentSpeed)) km/h"
+        altitudeLabel.text = "Altitude: \(Int(planeSprite.position.y)) m"
+        fuelLabel.text = "Fuel: \(Int(statsManager.fuelLevel))%"
+        damageLabel.text = "Damage: \(Int(statsManager.damage))%"
+        flightTimeLabel.text = String(format: "Time: %.1f s", statsManager.flightTime)
     }
 }
