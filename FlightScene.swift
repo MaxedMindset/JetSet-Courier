@@ -2,11 +2,21 @@
 //  FlightScene.swift
 //  SkyCraftBuildAndFly
 //
-//  Erweiterte FlightScene mit realistischen aerodynamischen Effekten, HUD und animierten UI-Übergängen
+//  Erweiterte FlightScene mit realistischen aerodynamischen Effekten, HUD und animierten UI-Übergängen,
+//  inklusive PhysicsCategory für Kollisionserkennung.
 //
 
 import SpriteKit
 import CoreGraphics
+
+// Definiere PhysicsCategory für die Kollisionserkennung
+struct PhysicsCategory {
+    static let none: UInt32      = 0
+    static let plane: UInt32     = 0b1       // 1
+    static let ground: UInt32    = 0b10      // 2
+    static let obstacle: UInt32  = 0b100     // 4
+    // Weitere Kategorien können hier hinzugefügt werden, z. B. für Power-Ups, Wände, etc.
+}
 
 class FlightScene: SKScene {
     
@@ -37,21 +47,34 @@ class FlightScene: SKScene {
     override func didMove(to view: SKView) {
         self.backgroundColor = SKColor.cyan
         
-        // Hintergrund (ein einfacher Himmel)
-        let sky = SKSpriteNode(color: SKColor.cyan, size: CGSize(width: size.width, height: size.height))
-        sky.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        // Hintergrund
+        let sky = SKSpriteNode(color: SKColor.cyan, size: self.size)
+        sky.position = CGPoint(x: size.width/2, y: size.height/2)
         sky.zPosition = -2
         addChild(sky)
         
-        // Flugzeug-Sprite
+        // Flugzeug-Sprite einrichten
         planeSprite = SKSpriteNode(imageNamed: "aircraft_base")
         planeSprite.position = CGPoint(x: size.width * 0.2, y: size.height * 0.5)
         planeSprite.setScale(0.8)
         planeSprite.physicsBody = SKPhysicsBody(texture: planeSprite.texture!, size: planeSprite.size)
         planeSprite.physicsBody?.allowsRotation = false
+        // Weisen Sie dem Flugzeug eine Kategorie zu
+        planeSprite.physicsBody?.categoryBitMask = PhysicsCategory.plane
+        planeSprite.physicsBody?.collisionBitMask = PhysicsCategory.ground | PhysicsCategory.obstacle
+        planeSprite.physicsBody?.contactTestBitMask = PhysicsCategory.ground | PhysicsCategory.obstacle
         addChild(planeSprite)
         
-        // HUD-Setup
+        // Back-Button
+        backButton = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        backButton.text = "Back"
+        backButton.name = "backButton"
+        backButton.fontSize = 30
+        backButton.fontColor = SKColor.red
+        backButton.position = CGPoint(x: size.width/2, y: size.height * 0.1)
+        addChild(backButton)
+        
+        // HUD Setup
         setupHUD()
         
         // "Tap to Start" Overlay
@@ -59,15 +82,13 @@ class FlightScene: SKScene {
         tapToStartLabel.text = "Tap to Start"
         tapToStartLabel.fontSize = 36
         tapToStartLabel.fontColor = SKColor.white
-        tapToStartLabel.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        tapToStartLabel.position = CGPoint(x: size.width/2, y: size.height/2)
         tapToStartLabel.alpha = 0.0
         tapToStartLabel.zPosition = 10
         addChild(tapToStartLabel)
-        
-        // Fade in "Tap to Start"
         tapToStartLabel.run(SKAction.fadeIn(withDuration: 1.0))
         
-        // Game Over Overlay (initial versteckt)
+        // Game Over Overlay Setup
         setupGameOverOverlay()
         
         lastUpdateTime = 0
@@ -105,20 +126,18 @@ class FlightScene: SKScene {
         flightTimeLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
         flightTimeLabel.fontSize = 24
         flightTimeLabel.fontColor = SKColor.white
-        flightTimeLabel.position = CGPoint(x: size.width / 2, y: size.height - 40)
+        flightTimeLabel.position = CGPoint(x: size.width/2, y: size.height - 40)
         flightTimeLabel.zPosition = 5
         addChild(flightTimeLabel)
     }
     
     func setupGameOverOverlay() {
-        // Halbtransparentes Overlay
         gameOverOverlay = SKSpriteNode(color: SKColor.black.withAlphaComponent(0.7), size: self.size)
-        gameOverOverlay.position = CGPoint(x: self.size.width / 2, y: self.size.height / 2)
+        gameOverOverlay.position = CGPoint(x: size.width/2, y: size.height/2)
         gameOverOverlay.zPosition = 20
         gameOverOverlay.alpha = 0.0
         addChild(gameOverOverlay)
         
-        // Game Over Label
         gameOverLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
         gameOverLabel.text = "Game Over"
         gameOverLabel.fontSize = 50
@@ -127,7 +146,6 @@ class FlightScene: SKScene {
         gameOverLabel.alpha = 0.0
         gameOverOverlay.addChild(gameOverLabel)
         
-        // Restart Button
         restartButton = SKLabelNode(fontNamed: "AvenirNext-Bold")
         restartButton.text = "Restart"
         restartButton.name = "restartButton"
@@ -142,12 +160,12 @@ class FlightScene: SKScene {
         speedLabel.text = "Speed: \(Int(currentSpeed)) km/h"
         altitudeLabel.text = "Altitude: \(Int(planeSprite.position.y)) m"
         fuelLabel.text = "Fuel: \(Int(fuelLevel))%"
-        damageLabel.text = "Damage: \(Int(0))%"  // Hier könntest du z. B. Schadensberechnung integrieren.
+        damageLabel.text = "Damage: \(Int(0))%" // Hier kann zukünftige Schadenslogik eingefügt werden
         flightTimeLabel.text = String(format: "Time: %.1f s", flightTime)
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        // Wenn das Spiel noch nicht gestartet wurde, wird das "Tap to Start" Overlay entfernt.
+        // Erstes Tippen entfernt das "Tap to Start" Overlay
         if tapToStartLabel.parent != nil {
             tapToStartLabel.run(SKAction.fadeOut(withDuration: 0.5)) {
                 self.tapToStartLabel.removeFromParent()
@@ -155,7 +173,7 @@ class FlightScene: SKScene {
             return
         }
         
-        // Falls Game Over und Restart-Button sichtbar, überprüfe ob Restart gedrückt wurde
+        // Game Over: Restart prüfen
         guard !gameOver, let touch = touches.first else {
             if gameOver, let touch = touches.first {
                 let location = touch.location(in: gameOverOverlay)
@@ -166,52 +184,45 @@ class FlightScene: SKScene {
             return
         }
         
-        // Standard-Impulse: Beim Tippen wird ein Aufwärtsimpuls ausgegeben
+        // Standard-Impulse beim Tippen: Aufwärtsimpuls
         let impulse = CGVector(dx: 0, dy: 50)
         planeSprite.physicsBody?.applyImpulse(impulse)
     }
     
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        // Optionale Steuerung per Wisch: Hier könnte man zusätzliche Effekte integrieren
-    }
-    
     override func update(_ currentTime: TimeInterval) {
-        // Berechne dt (Delta Time)
+        // Delta Time berechnen
         if lastUpdateTime == 0 { lastUpdateTime = currentTime }
         let dt = currentTime - lastUpdateTime
         lastUpdateTime = currentTime
         
         if gameOver { return }
         
-        // Aktualisiere Flugzeit
+        // Flugzeit erhöhen
         flightTime += dt
         
-        // Erhöhe den Score oder verändere Flugparameter (hier simuliert als Änderung der Geschwindigkeit)
-        // In einer echten Simulation würden physikalische Kräfte (Luftwiderstand, Auftrieb) hier wirken:
+        // Simuliere Luftwiderstand
         let airResistance = currentSpeed * 0.02
         currentSpeed = max(0, currentSpeed - airResistance * CGFloat(dt))
         
-        // Simuliere Auftrieb: Ist die Geschwindigkeit hoch, steigt das Flugzeug
+        // Simuliere Auftrieb: Steigen oder Sinken
         if currentSpeed > 300 {
             planeSprite.position.y += 1 * CGFloat(dt * 60)
         } else {
             planeSprite.position.y -= 1 * CGFloat(dt * 60)
         }
         
-        // Simuliere zufällige Umwelteinflüsse: Wind und Turbulenzen
+        // Simuliere Wind und Turbulenzen
         let windForce = CGFloat.random(in: -5...5)
         let turbulenceForce = CGFloat.random(in: -3...3)
         planeSprite.physicsBody?.applyForce(CGVector(dx: windForce + turbulenceForce, dy: 0))
         
-        // Simuliere Treibstoffverbrauch
+        // Treibstoffverbrauch simulieren
         fuelLevel = max(0, fuelLevel - 0.05 * CGFloat(dt * 60))
-        
-        // Trigger Game Over, wenn der Treibstoff aufgebraucht ist
         if fuelLevel <= 0 {
             triggerGameOver()
         }
         
-        // Aktualisiere das HUD
+        // HUD aktualisieren
         updateHUD()
         
         // Stalleffekt: Wenn die Geschwindigkeit zu niedrig ist, sinkt das Flugzeug stärker
@@ -222,9 +233,7 @@ class FlightScene: SKScene {
     
     func triggerGameOver() {
         gameOver = true
-        // Stoppe Flugdaten-Tracking (z. B. via FlightStatsManager)
-        // Füge zusätzliche Effekte (z. B. Explosionen) hier ein
-        // Blende das Game Over-Overlay ein:
+        // Hier kann das Tracking von Echtzeit-Daten gestoppt werden
         gameOverOverlay.run(SKAction.fadeIn(withDuration: 1.0))
         gameOverLabel.run(SKAction.sequence([
             SKAction.wait(forDuration: 0.5),
@@ -239,23 +248,17 @@ class FlightScene: SKScene {
             SKAction.scale(to: 1.0, duration: 0.3)
         ]))
         
-        // Score an Leaderboard reporten (hier als Platzhalter)
+        // Score reporten (Platzhalter)
         LeaderboardManager.shared.reportScore(Int(flightTime * 100))
     }
     
     func restartGame() {
-        // Setze alle Parameter zurück
         gameOver = false
         flightTime = 0
         fuelLevel = 100.0
         currentSpeed = 300.0
         planeSprite.position = CGPoint(x: size.width * 0.2, y: size.height / 2)
         gameOverOverlay.run(SKAction.fadeOut(withDuration: 0.5))
-        statsResetAndStartTracking()
-    }
-    
-    func statsResetAndStartTracking() {
-        // In einer echten Implementierung: Reset der FlightStatsManager-Daten
-        // Hier setzen wir einfach die Variablen zurück
+        // Setze weitere Variablen ggf. zurück, z. B. Schadensstatus
     }
 }
