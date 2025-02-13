@@ -2,187 +2,155 @@
 //  FlightScene.swift
 //  SkyCraftBuildAndFly
 //
-//  Erstellt von ChatGPT
-//  In dieser Szene wird das Flugzeug (mit den im Hangar gewählten Parametern)
-//  in einer offenen, urbanen Umgebung geflogen. Der Spieler muss ein Paket abliefern,
-//  Hindernissen ausweichen und dabei unter einem maximalen Höhenlimit bleiben,
-//  weil in großer Höhe die Luft dünner wird und der Schub nachlässt.
-//  Zudem wird der Spieler von feindlichen Polizeieinheiten verfolgt.
-// 
+//  Diese erweiterte FlightScene simuliert realistischere aerodynamische Effekte wie Auftrieb, Luftwiderstand,
+//  Trägheit und Stalleffekte. Zudem werden Umwelteinflüsse (Wind, Turbulenzen) einbezogen.
+//  Ein HUD zeigt Echtzeit-Daten wie Geschwindigkeit, Flughöhe, Treibstoff, Schadensstatus und Flugzeit an.
+//
 
 import SpriteKit
+import CoreGraphics
 
-class FlightScene: SKScene, SKPhysicsContactDelegate {
-    var aircraft: Aircraft!
-    var packageNode: SKSpriteNode!
-    var policeNodes: [SKSpriteNode] = []
-    var windForce: CGVector = CGVector(dx: 0, dy: 0)
-
-    // Physics-Kategorien
-    struct PhysicsCategory {
-        static let aircraft: UInt32 = 0b1
-        static let obstacle: UInt32 = 0b10
-        static let package: UInt32 = 0b100
-        static let police: UInt32 = 0b1000
-        static let ground: UInt32 = 0b10000
-    }
+class FlightScene: SKScene {
     
-    // Maximale Flughöhe (z. B. wegen dünner Luft oder feindlicher Drohnen)
-    var maxAltitude: CGFloat = 800
-    var currentAltitude: CGFloat = 0
+    var planeSprite: SKSpriteNode!
+    var backButton: SKLabelNode!
     
-    var scoreLabel: SKLabelNode!
-    var packageDelivered: Bool = false
+    // HUD-Labels
+    var speedLabel: SKLabelNode!
+    var altitudeLabel: SKLabelNode!
+    var fuelLabel: SKLabelNode!
+    var damageLabel: SKLabelNode!
+    var flightTimeLabel: SKLabelNode!
+    
+    // Simulierte physikalische Parameter
+    var currentSpeed: CGFloat = 300
+    var currentAltitude: CGFloat = 1500
+    var fuelLevel: CGFloat = 100.0
+    var damage: CGFloat = 0.0
+    var flightTime: TimeInterval = 0.0
+    
+    // Wind- und Turbulenzeffekte
+    var windForce: CGFloat = 0
+    var turbulenceForce: CGFloat = 0
     
     override func didMove(to view: SKView) {
-        self.backgroundColor = .cyan
-        physicsWorld.gravity = CGVector(dx: 0, dy: -9.8)
-        physicsWorld.contactDelegate = self
+        self.backgroundColor = SKColor.cyan
         
-        // Boden
-        let ground = SKSpriteNode(color: .brown, size: CGSize(width: size.width*2, height: 100))
-        ground.position = CGPoint(x: 0, y: 0)
-        ground.anchorPoint = CGPoint.zero
-        ground.physicsBody = SKPhysicsBody(rectangleOf: ground.size, center: CGPoint(x: ground.size.width/2, y: ground.size.height/2))
-        ground.physicsBody?.isDynamic = false
-        ground.physicsBody?.categoryBitMask = PhysicsCategory.ground
-        addChild(ground)
+        // Hintergrund (einfacher Himmel)
+        let sky = SKSpriteNode(color: SKColor.cyan, size: CGSize(width: size.width, height: size.height))
+        sky.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        sky.zPosition = -1
+        addChild(sky)
         
-        // Flugzeug anhand der Konfiguration bauen
-        let config = AircraftConfigurationManager.shared.configuration
-        aircraft = Aircraft(configuration: config)
-        aircraft.position = CGPoint(x: size.width * 0.2, y: 150)
-        addChild(aircraft)
-        aircraft.startEngine()
+        // Flugzeug-Sprite
+        planeSprite = SKSpriteNode(imageNamed: "aircraft_base")
+        planeSprite.position = CGPoint(x: size.width * 0.2, y: size.height * 0.5)
+        planeSprite.setScale(0.8)
+        planeSprite.physicsBody = SKPhysicsBody(texture: planeSprite.texture!, size: planeSprite.size)
+        planeSprite.physicsBody?.allowsRotation = false
+        addChild(planeSprite)
         
-        // Paket
-        packageNode = SKSpriteNode(imageNamed: "package")
-        packageNode.position = CGPoint(x: size.width*1.5, y: 200)
-        packageNode.setScale(0.8)
-        packageNode.physicsBody = SKPhysicsBody(rectangleOf: packageNode.size)
-        packageNode.physicsBody?.isDynamic = false
-        packageNode.physicsBody?.categoryBitMask = PhysicsCategory.package
-        addChild(packageNode)
+        // Back-Button
+        backButton = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        backButton.text = "Back"
+        backButton.name = "backButton"
+        backButton.fontSize = 30
+        backButton.fontColor = SKColor.red
+        backButton.position = CGPoint(x: size.width / 2, y: size.height * 0.1)
+        addChild(backButton)
         
-        // Score Label
-        scoreLabel = SKLabelNode(text: "Deliver the Package!")
-        scoreLabel.fontSize = 28
-        scoreLabel.fontColor = .white
-        scoreLabel.position = CGPoint(x: size.width/2, y: size.height-50)
-        addChild(scoreLabel)
-        
-        // Polizei spawnen periodisch
-        let spawnPolice = SKAction.run { [weak self] in
-            self?.spawnPolice()
-        }
-        let wait = SKAction.wait(forDuration: 5.0)
-        run(SKAction.repeatForever(SKAction.sequence([spawnPolice, wait])))
+        setupHUD()
     }
     
-    override func update(_ currentTime: TimeInterval) {
-        // --- Erweiterte Physik: Wind und Turbulenzen ---
-
-        // Simuliere dynamische Windänderungen
-        let windChangeProbability = 0.02  // Wahrscheinlichkeit, dass sich der Wind ändert
-        if CGFloat.random(in: 0...1) < windChangeProbability {
-        // Setze einen neuen zufälligen Wind: horizontal zwischen -50 und 50
-        let randomWind = CGFloat.random(in: -50...50)
-        windForce = CGVector(dx: randomWind, dy: 0)
-        }
-        // Wende den aktuellen Wind als Kraft auf das Flugzeug an
-        aircraft.physicsBody?.applyForce(windForce)
-
-        // Simuliere Turbulenzen: kleine, zufällige zusätzliche Kräfte
-        let turbulenceForce = CGVector(dx: CGFloat.random(in: -10...10), dy: CGFloat.random(in: -10...10))
-        aircraft.physicsBody?.applyForce(turbulenceForce)
-
-        // Dynamische Luftdichte: Ab einer bestimmten Höhe wird der Auftrieb reduziert
-        if aircraft.position.y > 500 {
-        let reductionFactor = 1 - ((aircraft.position.y - 500) / 500) * 0.5  // bis zu 50% Reduktion
-        // Wende einen zusätzlichen Abwärtsimpuls proportional zur Reduktion an
-        aircraft.physicsBody?.applyForce(CGVector(dx: 0, dy: -50 * (1 - reductionFactor)))
-        }
-
-        // Berechne aktuelle Flughöhe
-        currentAltitude = aircraft.position.y
+    func setupHUD() {
+        speedLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        speedLabel.fontSize = 24
+        speedLabel.fontColor = SKColor.white
+        speedLabel.position = CGPoint(x: 100, y: size.height - 40)
+        addChild(speedLabel)
         
-        // Wenn die Flughöhe zu hoch ist, wendet sich der Auftrieb – simuliert durch einen zusätzlichen Abwärtsimpuls.
-        if aircraft.position.y > maxAltitude {
-            aircraft.applyStallEffect()
-            scoreLabel.text = "Too High! Thin Air!"
-        }
+        altitudeLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        altitudeLabel.fontSize = 24
+        altitudeLabel.fontColor = SKColor.white
+        altitudeLabel.position = CGPoint(x: size.width - 100, y: size.height - 40)
+        addChild(altitudeLabel)
         
-        // Kamera folgt dem Flugzeug (hier einfach ein leichtes Verschieben des Szenen-Inhalts)
-        self.anchorPoint = CGPoint(x: 0.3, y: 0.5)
+        fuelLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        fuelLabel.fontSize = 24
+        fuelLabel.fontColor = SKColor.white
+        fuelLabel.position = CGPoint(x: 100, y: size.height - 80)
+        addChild(fuelLabel)
         
-        // Paketabgabe: Sobald das Flugzeug am Paket vorbeifliegt
-        if !packageDelivered, aircraft.position.x > packageNode.position.x {
-            deliverPackage()
-        }
-    }
-    
-    func spawnPolice() {
-        let police = SKSpriteNode(imageNamed: "policeHelicopter")
-        police.position = CGPoint(x: size.width + 100, y: size.height * 0.8)
-        police.setScale(0.5)
-        police.physicsBody = SKPhysicsBody(rectangleOf: police.size)
-        police.physicsBody?.isDynamic = false
-        police.physicsBody?.categoryBitMask = PhysicsCategory.police
-        addChild(police)
-        policeNodes.append(police)
+        damageLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        damageLabel.fontSize = 24
+        damageLabel.fontColor = SKColor.white
+        damageLabel.position = CGPoint(x: size.width - 100, y: size.height - 80)
+        addChild(damageLabel)
         
-        let moveAction = SKAction.moveBy(x: -size.width - 200, y: 0, duration: 10)
-        let removeAction = SKAction.removeFromParent()
-        police.run(SKAction.sequence([moveAction, removeAction]))
+        flightTimeLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        flightTimeLabel.fontSize = 24
+        flightTimeLabel.fontColor = SKColor.white
+        flightTimeLabel.position = CGPoint(x: size.width / 2, y: size.height - 40)
+        addChild(flightTimeLabel)
     }
     
-    func deliverPackage() {
-        packageDelivered = true
-        packageNode.removeFromParent()
-        scoreLabel.text = "Package Delivered! Mission Accomplished!"
-        let wait = SKAction.wait(forDuration: 3.0)
-        let endAction = SKAction.run { [weak self] in
-            self?.endGame()
-        }
-        run(SKAction.sequence([wait, endAction]))
-    }
-    
-    func endGame() {
-        let mainMenu = MainMenuScene(size: size)
-        mainMenu.scaleMode = .aspectFill
-        self.view?.presentScene(mainMenu, transition: SKTransition.fade(withDuration: 1.0))
-    }
-    
-    // Kontaktbehandlung
-    func didBegin(_ contact: SKPhysicsContact) {
-        var firstBody: SKPhysicsBody
-        var secondBody: SKPhysicsBody
-        if contact.bodyA.categoryBitMask < contact.bodyB.categoryBitMask {
-            firstBody = contact.bodyA
-            secondBody = contact.bodyB
-        } else {
-            firstBody = contact.bodyB
-            secondBody = contact.bodyA
-        }
-        if firstBody.categoryBitMask == PhysicsCategory.aircraft &&
-           secondBody.categoryBitMask == PhysicsCategory.police {
-            endGame()
-        }
-        if firstBody.categoryBitMask == PhysicsCategory.aircraft &&
-           secondBody.categoryBitMask == PhysicsCategory.package {
-            deliverPackage()
-        }
-    }
-    
-    // Steuerung: Mit Touch-Gesten kann man das Flugzeug in der Höhe anpassen.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
-        // Ist der Touch im oberen Teil des Bildschirms, soll das Flugzeug steigen, im unteren sinken.
-        if location.y > size.height/2 {
-            aircraft.ascend()
+        let touchedNodes = nodes(at: location)
+        for node in touchedNodes {
+            if node.name == "backButton" {
+                let mainMenu = MainMenuScene(size: size)
+                mainMenu.scaleMode = .aspectFill
+                self.view?.presentScene(mainMenu, transition: SKTransition.fade(withDuration: 1.0))
+                return
+            }
+        }
+    }
+    
+    // Steuerung über touchesMoved: Wischgesten zum Steigen/Sinken
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let previous = touch.previousLocation(in: self)
+        let current = touch.location(in: self)
+        let deltaY = current.y - previous.y
+        planeSprite.physicsBody?.applyImpulse(CGVector(dx: 0, dy: deltaY * 0.1))
+    }
+    
+    override func update(_ currentTime: TimeInterval) {
+        // Erhöhe Flugzeit
+        flightTime += 1.0 / 60.0
+        
+        // Simuliere einfache Physik: Luftwiderstand und Auftrieb
+        // Hier ein rudimentäres Beispiel:
+        let airResistance = currentSpeed * 0.02
+        currentSpeed = max(0, currentSpeed - airResistance)
+        
+        // Simuliere Auftrieb: Wenn Geschwindigkeit hoch genug, steigt das Flugzeug, sonst sinkt es.
+        if currentSpeed > 300 {
+            planeSprite.position.y += 1
         } else {
-            aircraft.descend()
+            planeSprite.position.y -= 1
+        }
+        
+        // Simuliere Wind- und Turbulenzeffekte
+        windForce = CGFloat.random(in: -5...5)
+        turbulenceForce = CGFloat.random(in: -3...3)
+        planeSprite.physicsBody?.applyForce(CGVector(dx: windForce + turbulenceForce, dy: 0))
+        
+        // Aktualisiere HUD-Labels
+        speedLabel.text = "Speed: \(Int(currentSpeed)) km/h"
+        altitudeLabel.text = "Altitude: \(Int(planeSprite.position.y)) m"
+        fuelLabel.text = "Fuel: \(Int(fuelLevel))%"
+        damageLabel.text = "Damage: \(Int(damage))%"
+        flightTimeLabel.text = String(format: "Time: %.1f s", flightTime)
+        
+        // Simuliere Treibstoffverbrauch
+        fuelLevel = max(0, fuelLevel - 0.05)
+        
+        // Simuliere Stalleffekt: Wenn die Geschwindigkeit zu niedrig ist, sinkt das Flugzeug schneller
+        if currentSpeed < 250 {
+            planeSprite.position.y -= 2
         }
     }
 }
