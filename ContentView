@@ -2,88 +2,27 @@
 //  ContentView.swift
 //  SkyCraftBuildAndFly
 //
-//  Erstellt von ChatGPT
-//
-//  Diese ContentView bietet über NavigationLinks den Zugriff auf alle Spielmodi und Erweiterungen.
-//  Der Spieler kann zwischen Tutorial, Hauptmenü, Multiplayer, Cosmetics, Replay und erweiterten Einstellungen wählen.
+//  Dieser zentrale SwiftUI-Einstiegspunkt bietet eine Navigation zu allen Modi und Erweiterungen.
 //
 import SwiftUI
-import SpriteKit
 
 struct ContentView: View {
     var body: some View {
         NavigationView {
             List {
                 NavigationLink("Tutorial", destination: TutorialView())
-                NavigationLink("Main Menu", destination: MainMenuSceneView())
-                NavigationLink("Multiplayer (Stub)", destination: MultiplayerSceneView())
-                NavigationLink("Cosmetics (Stub)", destination: CosmeticsSceneView())
-                NavigationLink("Replay Mode (Stub)", destination: ReplaySceneView())
-                NavigationLink("Extended Settings", destination: ExtendedSettingsSceneView())
+                NavigationLink("Hauptmenü", destination: MainMenuView())
+                NavigationLink("Multiplayer", destination: MultiplayerView())
+                NavigationLink("Cosmetics", destination: CosmeticsView())
+                NavigationLink("Replay Mode", destination: ReplayView())
+                NavigationLink("Erweiterte Einstellungen", destination: ExtendedSettingsView())
+                NavigationLink("Build Your Plane", destination: AdvancedBuildYourPlaneContainer())
+                NavigationLink("Start Flight", destination: AdvancedStartFlightContainer())
+                NavigationLink("Achievements", destination: AchievementsView())
             }
             .navigationTitle("SkyCraft Hub")
         }
     }
-}
-
-struct MainMenuSceneView: UIViewRepresentable {
-    func makeUIView(context: Context) -> SKView {
-        let skView = SKView(frame: UIScreen.main.bounds)
-        let scene = MainMenuScene(size: skView.bounds.size)
-        scene.scaleMode = .aspectFill
-        skView.presentScene(scene)
-        return skView
-    }
-    
-    func updateUIView(_ uiView: SKView, context: Context) { }
-}
-
-struct MultiplayerSceneView: UIViewRepresentable {
-    func makeUIView(context: Context) -> SKView {
-        let skView = SKView(frame: UIScreen.main.bounds)
-        let scene = MultiplayerScene(size: skView.bounds.size)
-        scene.scaleMode = .aspectFill
-        skView.presentScene(scene)
-        return skView
-    }
-    
-    func updateUIView(_ uiView: SKView, context: Context) { }
-}
-
-struct CosmeticsSceneView: UIViewRepresentable {
-    func makeUIView(context: Context) -> SKView {
-        let skView = SKView(frame: UIScreen.main.bounds)
-        let scene = CosmeticsScene(size: skView.bounds.size)
-        scene.scaleMode = .aspectFill
-        skView.presentScene(scene)
-        return skView
-    }
-    
-    func updateUIView(_ uiView: SKView, context: Context) { }
-}
-
-struct ReplaySceneView: UIViewRepresentable {
-    func makeUIView(context: Context) -> SKView {
-        let skView = SKView(frame: UIScreen.main.bounds)
-        let scene = ReplayScene(size: skView.bounds.size)
-        scene.scaleMode = .aspectFill
-        skView.presentScene(scene)
-        return skView
-    }
-    
-    func updateUIView(_ uiView: SKView, context: Context) { }
-}
-
-struct ExtendedSettingsSceneView: UIViewRepresentable {
-    func makeUIView(context: Context) -> SKView {
-        let skView = SKView(frame: UIScreen.main.bounds)
-        let scene = ExtendedSettingsScene(size: skView.bounds.size)
-        scene.scaleMode = .aspectFill
-        skView.presentScene(scene)
-        return skView
-    }
-    
-    func updateUIView(_ uiView: SKView, context: Context) { }
 }
 
 struct ContentView_Previews: PreviewProvider {
