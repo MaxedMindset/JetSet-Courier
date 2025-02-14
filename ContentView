@@ -1,27 +1,9 @@
-//
-//  ContentView.swift
-//  SkyCraftBuildAndFly
-//
-//  Dieser zentrale SwiftUI-Einstiegspunkt bietet eine Navigation zu allen Modi und Erweiterungen.
-//
 import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        NavigationView {
-            List {
-                NavigationLink("Tutorial", destination: TutorialView())
-                NavigationLink("Hauptmenü", destination: MainMenuView())
-                NavigationLink("Multiplayer", destination: MultiplayerView())
-                NavigationLink("Cosmetics", destination: CosmeticsView())
-                NavigationLink("Replay Mode", destination: ReplayView())
-                NavigationLink("Erweiterte Einstellungen", destination: ExtendedSettingsView())
-                NavigationLink("Build Your Plane", destination: AdvancedBuildYourPlaneContainer())
-                NavigationLink("Start Flight", destination: AdvancedStartFlightContainer())
-                NavigationLink("Achievements", destination: AchievementsView())
-            }
-            .navigationTitle("SkyCraft Hub")
-        }
+        // Startpunkt der App – hier wird das Hauptmenü angezeigt
+        MainMenuScene()
     }
 }
 
