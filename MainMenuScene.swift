@@ -4,14 +4,13 @@ struct MainMenuScene: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Hintergrundbild (ersetze "mainMenuBackground" mit deinem Bildnamen)
+                // Hintergrundbild
                 Image("mainMenuBackground")
                     .resizable()
                     .scaledToFill()
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack(spacing: 30) {
-                    // App-Titel
                     Text("JetSet Courier")
                         .font(.largeTitle)
                         .fontWeight(.bold)
@@ -20,17 +19,32 @@ struct MainMenuScene: View {
                     
                     Spacer()
                     
-                    // Navigation-Buttons
-                    NavigationLink(destination: HangarSceneView()) {
-                        MenuButtonView(title: "Hangar")
+                    NavigationLink(destination: BuildYourPlaneView()) {
+                        MenuButtonView(title: "Build Your Plane")
                     }
                     
-                    NavigationLink(destination: UpgradesScene()) {
-                        MenuButtonView(title: "Upgrades")
+                    NavigationLink(destination: MultiplayerScene()) {
+                        MenuButtonView(title: "Multiplayer")
                     }
                     
-                    NavigationLink(destination: BuildYourPlanView()) {
-                        MenuButtonView(title: "Bauplan")
+                    NavigationLink(destination: ReplayScene()) {
+                        MenuButtonView(title: "Replay")
+                    }
+                    
+                    NavigationLink(destination: CosmeticScene()) {
+                        MenuButtonView(title: "Cosmetics")
+                    }
+                    
+                    NavigationLink(destination: ShopScene()) {
+                        MenuButtonView(title: "Shop")
+                    }
+                    
+                    NavigationLink(destination: StoryScene()) {
+                        MenuButtonView(title: "Story Mode")
+                    }
+                    
+                    NavigationLink(destination: SettingsScene()) {
+                        MenuButtonView(title: "Settings")
                     }
                     
                     Spacer()
@@ -38,7 +52,6 @@ struct MainMenuScene: View {
                 .padding()
             }
         }
-        // Sicherstellen, dass auf allen Geräten ein konsistenter Stil verwendet wird
         .navigationViewStyle(StackNavigationViewStyle())
     }
 }
@@ -50,16 +63,16 @@ struct MainMenuScene_Previews: PreviewProvider {
     }
 }
 
-// Wiederverwendbare Schaltflächen-View für das Menü
+// Wiederverwendbare Menü-Schaltfläche
 struct MenuButtonView: View {
     let title: String
-    
     var body: some View {
         Text(title)
-            .font(.title2)
+            .font(.headline)
             .frame(width: 250, height: 50)
             .background(Color.blue.opacity(0.8))
             .foregroundColor(.white)
             .cornerRadius(10)
     }
 }
+
