@@ -1,49 +1,51 @@
-//
-//  MultiplayerScene.swift
-//  SkyCraftBuildAndFly
-//
-//  Ein Platzhalter für einen Multiplayer-Modus. Hier könntest du später Game Center oder Firebase integrieren.
-//  Für den Moment zeigt diese Szene nur einen einfachen Text und einen Back-Button.
-//
-import SpriteKit
+import SwiftUI
 
-class MultiplayerScene: SKScene {
-    override func didMove(to view: SKView) {
-        self.backgroundColor = SKColor.darkGray
-        
-        let titleLabel = SKLabelNode(text: "Multiplayer Mode")
-        titleLabel.fontName = "AvenirNext-Bold"
-        titleLabel.fontSize = 40
-        titleLabel.fontColor = SKColor.white
-        titleLabel.position = CGPoint(x: size.width/2, y: size.height*0.75)
-        addChild(titleLabel)
-        
-        let infoLabel = SKLabelNode(text: "Multiplayer wird bald verfügbar sein!")
-        infoLabel.fontName = "AvenirNext-Bold"
-        infoLabel.fontSize = 24
-        infoLabel.fontColor = SKColor.white
-        infoLabel.position = CGPoint(x: size.width/2, y: size.height*0.6)
-        addChild(infoLabel)
-        
-        let backButton = SKLabelNode(text: "Back")
-        backButton.name = "backButton"
-        backButton.fontName = "AvenirNext-Bold"
-        backButton.fontSize = 30
-        backButton.fontColor = SKColor.red
-        backButton.position = CGPoint(x: size.width/2, y: size.height*0.2)
-        addChild(backButton)
-    }
+struct MultiplayerScene: View {
+    @State private var isSearching = false
     
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
-        let location = touch.location(in: self)
-        let nodesAtPoint = nodes(at: location)
-        for node in nodesAtPoint {
-            if node.name == "backButton" {
-                let mainMenu = MainMenuScene(size: size)
-                mainMenu.scaleMode = .aspectFill
-                self.view?.presentScene(mainMenu, transition: SKTransition.fade(withDuration: 1.0))
+    var body: some View {
+        NavigationView {
+            ZStack {
+                // Hintergrundbild
+                Image("multiplayerBackground")
+                    .resizable()
+                    .scaledToFill()
+                    .edgesIgnoringSafeArea(.all)
+                
+                VStack {
+                    Text("Multiplayer")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding()
+                    
+                    if isSearching {
+                        Text("Searching for opponents...")
+                            .foregroundColor(.white)
+                            .padding()
+                    } else {
+                        Button(action: {
+                            isSearching = true
+                            // Simuliere eine Suche, die nach 3 Sekunden endet
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                isSearching = false
+                            }
+                        }) {
+                            MenuButtonView(title: "Find Match")
+                        }
+                    }
+                    
+                    Spacer()
+                }
             }
+            .navigationBarTitle("Multiplayer", displayMode: .inline)
         }
+    }
+}
+
+struct MultiplayerScene_Previews: PreviewProvider {
+    static var previews: some View {
+        MultiplayerScene()
+            .previewLayout(.fixed(width: 375, height: 812))
     }
 }
