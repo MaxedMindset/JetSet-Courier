@@ -1,83 +1,161 @@
 import SwiftUI
-import SpriteKit
-import CoreGraphics
-import Foundation
 
-// UIViewRepresentable, um die Hangar-Szene in SwiftUI einzubetten
-struct BuildYourPlaneView: UIViewRepresentable {
-    func makeUIView(context: Context) -> SKView {
-        let skView = SKView(frame: UIScreen.main.bounds)
-        let scene = HangarScene(size: skView.bounds.size)
-        scene.scaleMode = .aspectFill
-        skView.presentScene(scene)
-        return skView
-    }
-    
-    func updateUIView(_ uiView: SKView, context: Context) {
-        // Hier kannst du Updates an die Szene übergeben (z.B. via Notification oder Shared Manager)
-    }
-}
+struct BuildYourPlaneView: View {
+    // Statusvariablen für die einzelnen Komponenten
+    @State private var hullAttached: Bool = false
+    @State private var hullOffset: CGSize = .zero
 
-// Container-View mit SwiftUI-Oberfläche, die zusätzliche UI-Elemente über dem SKView anzeigt
-struct BuildYourPlaneContainer: View {
-    // Beispielhafte Parameter – in einer echten App sollten diese an einen zentralen Manager übergeben werden.
-    @State private var weight: CGFloat = 100.0
-    @State private var lift: CGFloat = 100.0
-    @State private var thrust: CGFloat = 100.0
-    
+    @State private var wingAttached: Bool = false
+    @State private var wingOffset: CGSize = .zero
+
+    @State private var tailAttached: Bool = false
+    @State private var tailOffset: CGSize = .zero
+
+    @State private var landingGearAttached: Bool = false
+    @State private var landingGearOffset: CGSize = .zero
+
+    @State private var engineAttached: Bool = false
+    @State private var engineOffset: CGSize = .zero
+
     var body: some View {
-        ZStack {
-            // Der SKView mit der HangarScene
-            BuildYourPlaneView()
-                .edgesIgnoringSafeArea(.all)
-            
-            // Overlay: UI-Elemente zur Anpassung der Flugzeugkonfiguration
-            VStack {
-                Spacer()
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Flugzeug Konfiguration")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    HStack {
-                        Text("Gewicht: \(Int(weight))")
-                            .foregroundColor(.white)
-                        Slider(value: $weight, in: 50...200)
+        GeometryReader { geometry in
+            ZStack {
+                // 1. Hintergrund: Hangar
+                Image("hangarBackground")
+                    .resizable()
+                    .scaledToFill()
+                    .edgesIgnoringSafeArea(.all)
+
+                // 2. Top-Bar: Level, Geld und Ranglistenplatz
+                TopBarView(level: "Level 1", money: "$1000", rank: "Platz 5")
+                    .frame(width: geometry.size.width)
+                    .padding(.top, 40)
+                    .position(x: geometry.size.width / 2, y: 40)
+
+                // 3. Zentrale Drop-Zone: Hier wird das Flugzeug zusammengebaut
+                ZStack {
+                    // Optionale Umrandung als visueller Hinweis (z. B. ein Kreis)
+                    Circle()
+                        .stroke(Color.gray, lineWidth: 2)
+                        .frame(width: 300, height: 300)
+                        .opacity(0.5)
+
+                    // Angeheftete Komponenten, jeweils relativ zum Zentrum
+                    if hullAttached {
+                        Image("hull")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 150, height: 150)
+                            .offset(hullOffset)
                     }
-                    HStack {
-                        Text("Auftrieb: \(Int(lift))")
-                            .foregroundColor(.white)
-                        Slider(value: $lift, in: 50...200)
+                    if wingAttached {
+                        Image("wing")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 100, height: 100)
+                            .offset(wingOffset)
                     }
-                    HStack {
-                        Text("Schub: \(Int(thrust))")
-                            .foregroundColor(.white)
-                        Slider(value: $thrust, in: 50...200)
+                    if engineAttached {
+                        Image("engine")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 80, height: 80)
+                            .offset(engineOffset)
                     }
-                    Button(action: {
-                        // Hier kannst du z. B. die aktuellen Werte an deinen Configuration Manager übergeben
-                        print("Test: Gewicht: \(weight), Auftrieb: \(lift), Schub: \(thrust)")
-                        // Optional: Sende eine Notification an die HangarScene, damit diese ihre Konfiguration aktualisiert.
-                    }) {
-                        Text("Test Configuration")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.blue)
-                            .padding()
-                            .background(Color.white)
-                            .cornerRadius(8)
+                    if landingGearAttached {
+                        Image("landingGear")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 80, height: 80)
+                            .offset(landingGearOffset)
+                    }
+                    if tailAttached {
+                        Image("tail")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 80, height: 80)
+                            .offset(tailOffset)
                     }
                 }
-                .padding()
-                .background(Color.black.opacity(0.6))
-                .cornerRadius(12)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 40)
+                .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+
+                // 4. Palette der Bauteile im unteren Bereich
+                VStack {
+                    Spacer()
+                    HStack(spacing: 20) {
+                        // Rumpf (Zentrale Basis)
+                        DraggablePartView(
+                            imageName: "hull",
+                            targetOffset: .zero,
+                            initialPosition: CGPoint(x: 60, y: geometry.size.height - 60),
+                            attached: $hullAttached,
+                            dragOffset: $hullOffset,
+                            airplaneCenter: CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                        )
+                        // Flügel
+                        DraggablePartView(
+                            imageName: "wing",
+                            targetOffset: CGSize(width: -100, height: 0),
+                            initialPosition: CGPoint(x: 140, y: geometry.size.height - 60),
+                            attached: $wingAttached,
+                            dragOffset: $wingOffset,
+                            airplaneCenter: CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                        )
+                        // Motor
+                        DraggablePartView(
+                            imageName: "engine",
+                            targetOffset: CGSize(width: 0, height: -100),
+                            initialPosition: CGPoint(x: 220, y: geometry.size.height - 60),
+                            attached: $engineAttached,
+                            dragOffset: $engineOffset,
+                            airplaneCenter: CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                        )
+                        // Fahrwerk
+                        DraggablePartView(
+                            imageName: "landingGear",
+                            targetOffset: CGSize(width: 0, height: 50),
+                            initialPosition: CGPoint(x: 300, y: geometry.size.height - 60),
+                            attached: $landingGearAttached,
+                            dragOffset: $landingGearOffset,
+                            airplaneCenter: CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                        )
+                        // Leitwerk (Tail)
+                        DraggablePartView(
+                            imageName: "tail",
+                            targetOffset: CGSize(width: 0, height: 100),
+                            initialPosition: CGPoint(x: 380, y: geometry.size.height - 60),
+                            attached: $tailAttached,
+                            dragOffset: $tailOffset,
+                            airplaneCenter: CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                        )
+                    }
+                    .padding(.bottom, 20)
+                }
+
+                // 5. Bauplan-Button in der unteren rechten Ecke
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            // Hier kannst du z. B. einen detaillierten Bauplan anzeigen
+                        }) {
+                            Image("bauplan")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 80, height: 80)
+                        }
+                        .padding()
+                    }
+                }
             }
         }
     }
 }
 
-struct BuildYourPlaneContainer_Previews: PreviewProvider {
+struct BuildYourPlaneView_Previews: PreviewProvider {
     static var previews: some View {
-        BuildYourPlaneContainer()
+        BuildYourPlaneView()
+            .previewLayout(.fixed(width: 375, height: 812))
     }
 }
