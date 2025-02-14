@@ -1,71 +1,98 @@
-//
-//  ExtendedSettingsScene.swift
-//  SkyCraftBuildAndFly
-//
-//  Diese Szene bietet erweiterte Einstellungen, z. B. Grafikqualität, Steuerungsoptionen
-//  und Sound-Einstellungen. Hier können Spieler das Spiel individuell anpassen.
-//
-import SpriteKit
+import SwiftUI
 
-class ExtendedSettingsScene: SKScene {
-    
-    override func didMove(to view: SKView) {
-        self.backgroundColor = SKColor.darkGray
-        
-        let titleLabel = SKLabelNode(text: "Erweiterte Einstellungen")
-        titleLabel.fontName = "AvenirNext-Bold"
-        titleLabel.fontSize = 40
-        titleLabel.fontColor = SKColor.white
-        titleLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.8)
-        addChild(titleLabel)
-        
-        // Beispieloptionen
-        let graphicsOption = SKLabelNode(text: "Grafik: High")
-        graphicsOption.fontName = "AvenirNext-Bold"
-        graphicsOption.fontSize = 30
-        graphicsOption.fontColor = SKColor.white
-        graphicsOption.position = CGPoint(x: size.width / 2, y: size.height * 0.65)
-        graphicsOption.name = "graphicsOption"
-        addChild(graphicsOption)
-        
-        let controlOption = SKLabelNode(text: "Steuerung: Touch")
-        controlOption.fontName = "AvenirNext-Bold"
-        controlOption.fontSize = 30
-        controlOption.fontColor = SKColor.white
-        controlOption.position = CGPoint(x: size.width / 2, y: size.height * 0.55)
-        controlOption.name = "controlOption"
-        addChild(controlOption)
-        
-        let soundOption = SKLabelNode(text: "Sound: On")
-        soundOption.fontName = "AvenirNext-Bold"
-        soundOption.fontSize = 30
-        soundOption.fontColor = SKColor.white
-        soundOption.position = CGPoint(x: size.width / 2, y: size.height * 0.45)
-        soundOption.name = "soundOption"
-        addChild(soundOption)
-        
-        let backButton = SKLabelNode(text: "Back")
-        backButton.name = "backButton"
-        backButton.fontName = "AvenirNext-Bold"
-        backButton.fontSize = 30
-        backButton.fontColor = SKColor.red
-        backButton.position = CGPoint(x: size.width / 2, y: size.height * 0.2)
-        addChild(backButton)
+struct ExtendedSettingScene: View {
+    // Audio Settings
+    @State private var soundEffectsEnabled: Bool = true
+    @State private var musicEnabled: Bool = true
+    @State private var musicVolume: Double = 0.8
+
+    // Grafik Settings
+    @State private var graphicsQuality: String = "High"
+    @State private var brightness: Double = 0.5
+
+    // Steuerung
+    @State private var invertedControls: Bool = false
+    @State private var sensitivity: Double = 1.0
+
+    // Erweiterte Einstellungen
+    @State private var developerModeEnabled: Bool = false
+
+    var body: some View {
+        NavigationView {
+            Form {
+                // MARK: - Audio Einstellungen
+                Section(header: Text("Audio Settings")) {
+                    Toggle(isOn: $soundEffectsEnabled) {
+                        Text("Sound Effects")
+                    }
+                    Toggle(isOn: $musicEnabled) {
+                        Text("Music")
+                    }
+                    if musicEnabled {
+                        HStack {
+                            Text("Music Volume")
+                            Slider(value: $musicVolume, in: 0...1)
+                        }
+                    }
+                }
+                
+                // MARK: - Grafik Einstellungen
+                Section(header: Text("Graphics Settings")) {
+                    Picker("Graphics Quality", selection: $graphicsQuality) {
+                        Text("Low").tag("Low")
+                        Text("Medium").tag("Medium")
+                        Text("High").tag("High")
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    
+                    HStack {
+                        Text("Brightness")
+                        Slider(value: $brightness, in: 0...1)
+                    }
+                }
+                
+                // MARK: - Steuerung
+                Section(header: Text("Controls")) {
+                    Toggle(isOn: $invertedControls) {
+                        Text("Inverted Controls")
+                    }
+                    
+                    HStack {
+                        Text("Sensitivity")
+                        Slider(value: $sensitivity, in: 0.5...2.0)
+                    }
+                }
+                
+                // MARK: - Erweiterte Einstellungen
+                Section(header: Text("Advanced Settings")) {
+                    Toggle(isOn: $developerModeEnabled) {
+                        Text("Developer Mode")
+                    }
+                    if developerModeEnabled {
+                        Button(action: {
+                            resetAdvancedSettings()
+                        }) {
+                            Text("Reset Advanced Options")
+                                .foregroundColor(.red)
+                        }
+                    }
+                }
+            }
+            .navigationBarTitle("Extended Settings", displayMode: .inline)
+        }
     }
     
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
-        let location = touch.location(in: self)
-        let touchedNodes = nodes(at: location)
-        for node in touchedNodes {
-            if let nodeName = node.name {
-                if nodeName == "backButton" {
-                    let mainMenu = MainMenuScene(size: size)
-                    mainMenu.scaleMode = .aspectFill
-                    self.view?.presentScene(mainMenu, transition: SKTransition.fade(withDuration: 1.0))
-                }
-                // Hier können weitere Optionen per Touch getoggelt werden.
-            }
-        }
+    // Funktion zum Zurücksetzen der erweiterten Einstellungen
+    private func resetAdvancedSettings() {
+        invertedControls = false
+        sensitivity = 1.0
+        graphicsQuality = "High"
+    }
+}
+
+struct ExtendedSettingScene_Previews: PreviewProvider {
+    static var previews: some View {
+        ExtendedSettingScene()
+            .previewLayout(.fixed(width: 375, height: 812))
     }
 }
