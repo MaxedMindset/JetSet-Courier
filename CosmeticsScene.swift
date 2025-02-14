@@ -1,49 +1,53 @@
-//
-//  CosmeticsScene.swift
-//  SkyCraftBuildAndFly
-//
-//  Diese Szene zeigt einen Platzhalter für kosmetische Upgrades des Flugzeugs.
-//  Hier könnte der Spieler verschiedene Skins, Lackierungen und Effekte auswählen.
-//
-import SpriteKit
+import SwiftUI
 
-class CosmeticsScene: SKScene {
-    override func didMove(to view: SKView) {
-        self.backgroundColor = SKColor.black
-        
-        let titleLabel = SKLabelNode(text: "Cosmetics")
-        titleLabel.fontName = "AvenirNext-Bold"
-        titleLabel.fontSize = 40
-        titleLabel.fontColor = SKColor.white
-        titleLabel.position = CGPoint(x: size.width/2, y: size.height*0.75)
-        addChild(titleLabel)
-        
-        let infoLabel = SKLabelNode(text: "Komm bald zurück für mehr Anpassungsoptionen!")
-        infoLabel.fontName = "AvenirNext-Bold"
-        infoLabel.fontSize = 24
-        infoLabel.fontColor = SKColor.white
-        infoLabel.position = CGPoint(x: size.width/2, y: size.height*0.6)
-        addChild(infoLabel)
-        
-        let backButton = SKLabelNode(text: "Back")
-        backButton.name = "backButton"
-        backButton.fontName = "AvenirNext-Bold"
-        backButton.fontSize = 30
-        backButton.fontColor = SKColor.red
-        backButton.position = CGPoint(x: size.width/2, y: size.height*0.2)
-        addChild(backButton)
-    }
+struct CosmeticScene: View {
+    @State private var selectedSkin: String = "Default"
+    let availableSkins = ["Default", "Red", "Blue", "Green"]
     
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
-        let location = touch.location(in: self)
-        let nodesAtPoint = nodes(at: location)
-        for node in nodesAtPoint {
-            if node.name == "backButton" {
-                let mainMenu = MainMenuScene(size: size)
-                mainMenu.scaleMode = .aspectFill
-                self.view?.presentScene(mainMenu, transition: SKTransition.fade(withDuration: 1.0))
+    var body: some View {
+        NavigationView {
+            ZStack {
+                // Hintergrundbild
+                Image("cosmeticBackground")
+                    .resizable()
+                    .scaledToFill()
+                    .edgesIgnoringSafeArea(.all)
+                
+                VStack {
+                    Text("Cosmetics")
+                        .font(.largeTitle)
+                        .foregroundColor(.white)
+                        .padding()
+                    
+                    // Horizontale Auswahl der Skins
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 20) {
+                            ForEach(availableSkins, id: \.self) { skin in
+                                Button(action: {
+                                    selectedSkin = skin
+                                }) {
+                                    Image(skin) // Asset-Name entspricht dem Skin-Namen
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 100, height: 100)
+                                        .border(selectedSkin == skin ? Color.yellow : Color.clear, width: 3)
+                                }
+                            }
+                        }
+                        .padding()
+                    }
+                    
+                    Spacer()
+                }
             }
+            .navigationBarTitle("Cosmetics", displayMode: .inline)
         }
+    }
+}
+
+struct CosmeticScene_Previews: PreviewProvider {
+    static var previews: some View {
+        CosmeticScene()
+            .previewLayout(.fixed(width: 375, height: 812))
     }
 }
